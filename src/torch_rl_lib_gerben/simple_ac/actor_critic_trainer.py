@@ -61,6 +61,9 @@ class ActorCriticTrainer:
         self.dones = torch.zeros(n_trajectories, trajectory_length + 1, 1, dtype=torch.bool)
         self.reset_arrays()
 
+        # Init score system
+        self.scores = [0.0 for _ in range(n_trajectories)]
+
     # Empties arrays and fills first index of state and done arrays with previous state and done information
     def reset_arrays(self):
         self.actions[:] = 0.0
@@ -88,11 +91,17 @@ class ActorCriticTrainer:
                     self.rewards[trajectory_index, step] = r
                     self.dones[trajectory_index, step + 1] = done
                     self.states[trajectory_index, step + 1] = s_new
+
+                    self.scores[trajectory_index] += r
                 else:
                     s_new_orig, _ = self.envs[trajectory_index].reset()
                     s_new = self.state_converter(s_new_orig)
                     done = False
                     self.states[trajectory_index, step + 1] = s_new
+
+                    # Temporary
+                    # print("Got score: ", self.scores[trajectory_index])
+                    self.scores[trajectory_index] = 0.0
 
                 s = s_new
 

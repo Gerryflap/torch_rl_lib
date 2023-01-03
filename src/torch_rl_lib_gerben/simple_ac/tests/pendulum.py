@@ -4,6 +4,7 @@ import torch
 
 from src.torch_rl_lib_gerben.simple_ac.actor_critic_trainer import ActorCriticTrainer
 from src.torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
+from src.torch_rl_lib_gerben.simple_ac.sinusoidal_embedding import SinusoidalEmbedding
 from src.torch_rl_lib_gerben.simple_ac.value_net import ValueNet
 
 
@@ -17,15 +18,25 @@ def convert_state(s):
     return s
 
 
+# sin_emb = SinusoidalEmbedding()
+#
+#
+# def convert_state_sin(s):
+#     s = torch.from_numpy(s)
+#     s[2] /= 8.0
+#     s = sin_emb(s.view(1, -1)).view(-1)
+#     return s
+
+
 def convert_action(a):
     return a.numpy() * 4.0 - 2.0
 
 
-value_net = ValueNet(3, 64)
-policy_net = PolicyNet(3, 64, entropy_factor=1e-3)
+value_net = ValueNet(3, 64, gamma=0.99, fix_for_n_training_steps=100)
+policy_net = PolicyNet(3, 64, entropy_factor=0.0)
 
 trainer = ActorCriticTrainer(policy_net, value_net, env_init, convert_state, convert_action, 1,
-                             reward_multiplier=1/16.0)
+                             trajectory_length=10)
 
 for train_step in range(10000):
     trainer.collect_and_train()
