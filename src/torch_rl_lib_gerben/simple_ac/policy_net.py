@@ -1,11 +1,13 @@
 from copy import deepcopy
 
 import torch.nn
+from torch.utils.tensorboard import SummaryWriter
 
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, n_inputs, hidden_layer_size,
-                 fix_for_n_training_steps=5, lr=0.0003, batch_size=64, n_outputs=1, clip_beta=True, entropy_factor=0.0):
+                 fix_for_n_training_steps=5, lr=0.0003, batch_size=64, n_outputs=1, clip_beta=True, entropy_factor=0.0,
+                 summary_writer: SummaryWriter = None):
         super().__init__()
 
         self.fix_for_n_training_steps = fix_for_n_training_steps
@@ -15,6 +17,7 @@ class PolicyNet(torch.nn.Module):
         # Smaller values allow the model to create U-shaped distributions, which is often not very great.
         self.clip_beta = clip_beta
         self.entropy_factor = entropy_factor
+        self.summary_writer = summary_writer
 
         self.current_train_step = 0
 
@@ -64,13 +67,23 @@ class PolicyNet(torch.nn.Module):
         small_states = states[:, :-1].contiguous()
         states = small_states.view(*((n_trajectories * trajectory_len,) + states.size()[2:]))
 
+        if self.summary_writer is not None:
+            self.summary_writer.add_scalar("PolicyNet/mean_advantages",
+                                           advantages.mean(),
+                                           self.current_train_step
+                                           )
+            self.summary_writer.add_scalar("PolicyNet/mean_entropy",
+                                           self(states).entropy().mean(),
+                                           self.current_train_step
+                                           )
+
         indices = torch.randperm(n_samples)
         for i in range(0, n_samples, self.batch_size):
             self.optim.zero_grad()
             start, stop = i, i + self.batch_size
             batch_indices = indices[start:stop]
             dist = self(states[batch_indices])
-            loss_batch = -(dist.log_prob(actions[batch_indices]) * advantages[batch_indices])
+            loss_batch = -(dist.log_prob(actions[batch_indices]) * advantages[batch_indices]) / self.batch_size
             if self.entropy_factor != 0.0:
                 loss_batch -= self.entropy_factor * dist.entropy()
             loss_batch[dones.view(-1)[batch_indices]] = 0.0

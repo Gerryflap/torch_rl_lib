@@ -1,6 +1,7 @@
 import time
 
 import torch
+from torch.utils.tensorboard import SummaryWriter
 
 from src.torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
 from src.torch_rl_lib_gerben.simple_ac.value_net import ValueNet
@@ -29,11 +30,12 @@ class ActorCriticTrainer:
             is collected.
         :param reward_multiplier: Is multiplied with the reward during training (not testing) to scale
             the rewards into a more reasonable window
+        :param summary_writer: TensorBoard summary writer to use
 
     """
 
     def __init__(self, pi: PolicyNet, v: ValueNet, env_constructor, state_converter, action_converter, n_actions,
-                 n_trajectories=32, trajectory_length=10, reward_multiplier=1.0):
+                 n_trajectories=32, trajectory_length=10, reward_multiplier=1.0, summary_writer: SummaryWriter = None):
         self.n_trajectories = n_trajectories
         self.trajectory_length = trajectory_length
         self.state_converter = state_converter
@@ -41,6 +43,8 @@ class ActorCriticTrainer:
         self.n_actions = n_actions
         self.env_constructor = env_constructor
         self.reward_multiplier = reward_multiplier
+        self.summary_writer = summary_writer
+        self.current_train_step = 0
 
         self.pi = pi
         self.v = v
@@ -99,8 +103,11 @@ class ActorCriticTrainer:
                     done = False
                     self.states[trajectory_index, step + 1] = s_new
 
-                    # Temporary
-                    # print("Got score: ", self.scores[trajectory_index])
+                    if self.summary_writer is not None:
+                        self.summary_writer.add_scalar("Trainer/train_scores",
+                                                       self.scores[trajectory_index],
+                                                       self.current_train_step
+                                                       )
                     self.scores[trajectory_index] = 0.0
 
                 s = s_new
@@ -118,6 +125,8 @@ class ActorCriticTrainer:
         self.pi.training_step(self.states, self.actions, self.dones, adv)
         self.v.training_step(self.states, collected_vs)
 
+        self.current_train_step += 1
+
     # Test the agent on a full trajectory and return the sum of rewards (and optionally render at an optional fps)
     def test_on_env(self, render=False, cap_fps=None):
         done = False
@@ -134,6 +143,6 @@ class ActorCriticTrainer:
 
             if render:
                 if cap_fps is not None:
-                    time.sleep(1.0/cap_fps)
+                    time.sleep(1.0 / cap_fps)
         env.close()
         return score
