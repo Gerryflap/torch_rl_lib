@@ -34,13 +34,13 @@ class ActorCriticTrainer:
 
     """
 
-    def __init__(self, pi: PolicyNet, v: ValueNet, env_constructor, state_converter, action_converter, n_actions,
+    def __init__(self, pi: PolicyNet, v: ValueNet, env_constructor, state_converter, action_converter,
                  n_trajectories=8, trajectory_length=100, reward_multiplier=1.0, summary_writer: SummaryWriter = None):
         self.n_trajectories = n_trajectories
         self.trajectory_length = trajectory_length
         self.state_converter = state_converter
         self.action_converter = action_converter
-        self.n_actions = n_actions
+        self.n_actions = pi.n_outputs
         self.env_constructor = env_constructor
         self.reward_multiplier = reward_multiplier
         self.summary_writer = summary_writer
