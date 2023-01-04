@@ -6,7 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, n_inputs, hidden_layer_size,
-                 fix_for_n_training_steps=5, lr=0.0003, batch_size=64, n_outputs=1, clip_beta=True, entropy_factor=0.0,
+                 fix_for_n_training_steps=100, lr=0.0003, batch_size=64, n_outputs=1, clip_beta=True, entropy_factor=0.0,
                  summary_writer: SummaryWriter = None):
         super().__init__()
 
@@ -35,8 +35,11 @@ class PolicyNet(torch.nn.Module):
 
         self.optim = torch.optim.Adam(self.model.parameters(), lr=lr)
 
-    def forward(self, states):
-        pred = self.model(states)
+    def forward(self, states, fixed_net=False):
+        if not fixed_net:
+            pred = self.model(states)
+        else:
+            pred = self.model_fixed(states)
         pred = torch.nn.functional.softplus(pred)
 
         if self.clip_beta:
@@ -82,15 +85,25 @@ class PolicyNet(torch.nn.Module):
             self.optim.zero_grad()
             start, stop = i, i + self.batch_size
             batch_indices = indices[start:stop]
-            dist = self(states[batch_indices])
-            loss_batch = -(dist.log_prob(actions[batch_indices]) * advantages[batch_indices]) / self.batch_size
-            if self.entropy_factor != 0.0:
-                loss_batch -= self.entropy_factor * dist.entropy()
+
+            batch_states = states[batch_indices]
+            batch_actions = actions[batch_indices]
+            batch_adv = advantages[batch_indices]
+            loss_batch = self.compute_loss(batch_states, batch_actions, batch_adv)
             loss_batch[dones.view(-1)[batch_indices]] = 0.0
+            loss_batch = torch.nan_to_num(loss_batch, nan=0.0)
             loss = loss_batch.sum()
             loss.backward()
-            self.optim.step()
+            if not torch.isnan(torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)).any():
+                self.optim.step()
 
         self.current_train_step += 1
         if self.current_train_step % self.fix_for_n_training_steps == 0:
             self.model_fixed.load_state_dict(self.model.state_dict())
+
+    def compute_loss(self, states, actions, advantages):
+        dist = self(states)
+        loss = -(dist.log_prob(actions) * advantages) / self.batch_size
+        if self.entropy_factor != 0.0:
+            loss -= self.entropy_factor * dist.entropy()
+        return loss
