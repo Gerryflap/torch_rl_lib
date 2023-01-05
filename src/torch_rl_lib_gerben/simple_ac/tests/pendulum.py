@@ -34,12 +34,12 @@ def convert_action(a):
     return a.numpy() * 4.0 - 2.0
 
 
-writer = SummaryWriter()
+writer = SummaryWriter(comment="pendulum")
 
 value_net = McValueNet(3, 64, gamma=0.99, fix_for_n_training_steps=10, summary_writer=writer, lr=1e-3)
 policy_net = PolicyNet(3, 64, entropy_factor=1e-4, summary_writer=writer, lr=1e-3)
 
-trainer = ActorCriticTrainer(policy_net, value_net, env_init, convert_state, convert_action, 1,
+trainer = ActorCriticTrainer(policy_net, value_net, env_init, convert_state, convert_action,
                              n_trajectories=8, trajectory_length=135, summary_writer=writer, reward_multiplier=1/16.0)
 
 for train_step in range(50000):
