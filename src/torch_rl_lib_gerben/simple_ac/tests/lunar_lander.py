@@ -3,12 +3,12 @@ import gymnasium
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from src.torch_rl_lib_gerben.simple_ac.actor_critic_trainer import ActorCriticTrainer
-from src.torch_rl_lib_gerben.simple_ac.gae_value_net import GaeValueNet
-from src.torch_rl_lib_gerben.simple_ac.mc_value_net import McValueNet
-from src.torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
-from src.torch_rl_lib_gerben.simple_ac.ppo_policy_net import PpoPolicyNet
-from src.torch_rl_lib_gerben.simple_ac.value_net import ValueNet
+from torch_rl_lib_gerben.simple_ac.actor_critic_trainer import ActorCriticTrainer
+from torch_rl_lib_gerben.simple_ac.gae_value_net import GaeValueNet
+from torch_rl_lib_gerben.simple_ac.mc_value_net import McValueNet
+from torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
+from torch_rl_lib_gerben.simple_ac.ppo_policy_net import PpoPolicyNet
+from torch_rl_lib_gerben.simple_ac.value_net import ValueNet
 
 
 def env_init(render=False):

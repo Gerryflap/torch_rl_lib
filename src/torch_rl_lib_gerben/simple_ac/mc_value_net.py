@@ -3,7 +3,7 @@ from copy import deepcopy
 
 from torch.utils.tensorboard import SummaryWriter
 
-from src.torch_rl_lib_gerben.simple_ac.value_net import ValueNet
+from torch_rl_lib_gerben.simple_ac.value_net import ValueNet
 
 
 class McValueNet(ValueNet):

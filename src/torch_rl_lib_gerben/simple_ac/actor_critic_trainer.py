@@ -4,9 +4,9 @@ from enum import Enum
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from src.torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
-from src.torch_rl_lib_gerben.simple_ac.timer import Timer
-from src.torch_rl_lib_gerben.simple_ac.value_net import ValueNet
+from torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
+from torch_rl_lib_gerben.simple_ac.timer import Timer
+from torch_rl_lib_gerben.simple_ac.value_net import ValueNet
 
 """
     Simple trainer that collects N trajectories of length T and then trains the networks

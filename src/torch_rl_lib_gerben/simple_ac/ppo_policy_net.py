@@ -3,7 +3,7 @@ from copy import deepcopy
 import torch.nn
 from torch.utils.tensorboard import SummaryWriter
 
-from src.torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
+from torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
 
 
 class PpoPolicyNet(PolicyNet):

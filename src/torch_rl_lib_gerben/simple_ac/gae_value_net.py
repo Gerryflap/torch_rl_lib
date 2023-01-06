@@ -1,5 +1,5 @@
 import torch
-from src.torch_rl_lib_gerben.simple_ac.value_net import ValueNet
+from torch_rl_lib_gerben.simple_ac.value_net import ValueNet
 
 
 class GaeValueNet(ValueNet):

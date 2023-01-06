@@ -6,8 +6,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 class PolicyNet(torch.nn.Module):
     def __init__(self, n_inputs, hidden_layer_size,
-                 fix_for_n_training_steps=100, lr=0.0003, batch_size=64, n_outputs=1, clip_beta=True, entropy_factor=0.0,
-                 summary_writer: SummaryWriter = None):
+                 fix_for_n_training_steps=100, lr=0.0003, batch_size=64, n_outputs=1, clip_beta=True,
+                 entropy_factor=0.0, summary_writer: SummaryWriter = None):
         super().__init__()
 
         self.fix_for_n_training_steps = fix_for_n_training_steps
