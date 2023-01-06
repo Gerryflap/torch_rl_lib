@@ -1,9 +1,11 @@
 import time
+from enum import Enum
 
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from src.torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
+from src.torch_rl_lib_gerben.simple_ac.timer import Timer
 from src.torch_rl_lib_gerben.simple_ac.value_net import ValueNet
 
 """
@@ -31,20 +33,26 @@ class ActorCriticTrainer:
         :param reward_multiplier: Is multiplied with the reward during training (not testing) to scale
             the rewards into a more reasonable window
         :param summary_writer: TensorBoard summary writer to use
-
+        :param cuda: When true, perform training and collection on the GPU
     """
 
     def __init__(self, pi: PolicyNet, v: ValueNet, env_constructor, state_converter, action_converter,
-                 n_trajectories=8, trajectory_length=100, reward_multiplier=1.0, summary_writer: SummaryWriter = None):
+                 n_trajectories=8, trajectory_length=100, reward_multiplier=1.0, summary_writer: SummaryWriter = None,
+                 cuda=False):
         self.n_trajectories = n_trajectories
         self.trajectory_length = trajectory_length
         self.state_converter = state_converter
+        if cuda:
+            self.state_converter = lambda s: state_converter(s).cuda()
         self.action_converter = action_converter
         self.n_actions = pi.n_outputs
         self.env_constructor = env_constructor
         self.reward_multiplier = reward_multiplier
         self.summary_writer = summary_writer
         self.current_train_step = 0
+        self.cuda = cuda
+        self.device = 'cuda' if cuda else 'cpu'
+        self.timer = Timer()
 
         self.pi = pi
         self.v = v
@@ -59,10 +67,10 @@ class ActorCriticTrainer:
         self.prev_last_state_and_done = [(env.reset()[0], False) for env in self.envs]
 
         # Init arrays
-        self.states = torch.zeros((n_trajectories, trajectory_length + 1) + self.state_shape)
-        self.rewards = torch.zeros(n_trajectories, trajectory_length, 1)
-        self.actions = torch.zeros(n_trajectories, trajectory_length, self.n_actions)
-        self.dones = torch.zeros(n_trajectories, trajectory_length + 1, 1, dtype=torch.bool)
+        self.states = torch.zeros((n_trajectories, trajectory_length + 1) + self.state_shape, device=self.device)
+        self.rewards = torch.zeros(n_trajectories, trajectory_length, 1, device=self.device)
+        self.actions = torch.zeros(n_trajectories, trajectory_length, self.n_actions, device=self.device)
+        self.dones = torch.zeros(n_trajectories, trajectory_length + 1, 1, dtype=torch.bool, device=self.device)
         self.reset_arrays()
 
         # Init score system
@@ -115,16 +123,42 @@ class ActorCriticTrainer:
             self.prev_last_state_and_done[trajectory_index] = (s_new_orig, done)
 
     def collect_and_train(self):
+        if self.summary_writer:
+            self.timer.reset()
         self.collect()
+
+        if self.summary_writer:
+            self.summary_writer.add_scalar("Timing/collect",
+                                           self.timer.get_duration_and_reset(),
+                                           self.current_train_step
+                                           )
 
         adv, collected_vs = self.v.compute_advantage_and_target_returns(
             self.states,
             self.rewards * self.reward_multiplier,
             self.dones
         )
+        if self.summary_writer:
+            self.summary_writer.add_scalar("Timing/compute_advantages",
+                                           self.timer.get_duration_and_reset(),
+                                           self.current_train_step
+                                           )
+
         self.pi.training_step(self.states, self.actions, self.dones, adv)
+
+        if self.summary_writer:
+            self.summary_writer.add_scalar("Timing/train_pi",
+                                           self.timer.get_duration_and_reset(),
+                                           self.current_train_step
+                                           )
+
         self.v.training_step(self.states, collected_vs)
 
+        if self.summary_writer:
+            self.summary_writer.add_scalar("Timing/train_v",
+                                           self.timer.get_duration_and_reset(),
+                                           self.current_train_step
+                                           )
         self.current_train_step += 1
 
     # Test the agent on a full trajectory and return the sum of rewards (and optionally render at an optional fps)

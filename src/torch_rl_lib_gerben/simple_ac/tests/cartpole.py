@@ -27,13 +27,19 @@ def convert_action(a):
     return env_a
 
 
-writer = SummaryWriter(comment="lunar_lander")
+cuda = False
+writer = SummaryWriter(comment="cartpole")
 
 value_net = GaeValueNet(4, 64, gamma=0.999, fix_for_n_training_steps=1, summary_writer=writer, lr=3e-4)
 policy_net = PpoPolicyNet(4, 64, entropy_factor=0.0, fix_for_n_training_steps=10, summary_writer=writer, lr=3e-4)
 
+if cuda:
+    value_net = value_net.cuda()
+    policy_net = policy_net.cuda()
+
 trainer = ActorCriticTrainer(policy_net, value_net, env_init, convert_state, convert_action,
-                             n_trajectories=8, trajectory_length=100, summary_writer=writer, reward_multiplier=0.005)
+                             n_trajectories=8, trajectory_length=100, summary_writer=writer, reward_multiplier=0.005,
+                             cuda=cuda)
 
 for train_step in range(50000):
     trainer.collect_and_train()
