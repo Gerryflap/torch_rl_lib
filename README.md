@@ -1,11 +1,6 @@
 # Reinforcement Learning Algorithms in PyTorch
 Collection of RL algorithms for personal use.
 
-## Build wheel
-Optional: `python -m pip install --upgrade build`
-
-Build project: `python -m build`
-
 ## Components:
 This is a work in progress module. Current supported modules are:
 

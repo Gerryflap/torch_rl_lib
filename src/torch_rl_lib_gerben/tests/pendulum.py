@@ -3,11 +3,9 @@ import gymnasium
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from torch_rl_lib_gerben.simple_ac.actor_critic_trainer import ActorCriticTrainer
-from torch_rl_lib_gerben.simple_ac.mc_value_net import McValueNet
-from torch_rl_lib_gerben.simple_ac.policy_net import PolicyNet
-from torch_rl_lib_gerben.simple_ac.sinusoidal_embedding import SinusoidalEmbedding
-from torch_rl_lib_gerben.simple_ac.value_net import ValueNet
+from torch_rl_lib_gerben.actor_critic_trainer import ActorCriticTrainer
+from torch_rl_lib_gerben.value.mc_value_net import McValueNet
+from torch_rl_lib_gerben.policy.policy_net import PolicyNet
 
 
 def env_init(render=False):
