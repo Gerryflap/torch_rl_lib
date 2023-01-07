@@ -6,6 +6,8 @@ from torch_rl_lib_gerben.policy.policy_net import PolicyNet
 class PpoPolicyNet(PolicyNet):
     """
         PolicyNet that implements the PPO (Proximal Policy Optimization) loss function.
+        Schulman, John, et al. "Proximal policy optimization algorithms." arXiv preprint arXiv:1707.06347 (2017).
+
         To summarize: PPO resolves an instability in A2C (the default PolicyNet) by keeping a second fixed
             policy network whose weights are only updated to the new values every N training steps.
             Updates done to pi(s) cannot deviate too much from pi_fixed(s).
