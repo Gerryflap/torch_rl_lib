@@ -7,37 +7,35 @@ from torch_rl_lib_gerben.policy.policy_net import PolicyNet
 from torch_rl_lib_gerben.util.timer import Timer
 from torch_rl_lib_gerben.value.value_net import ValueNet
 
-"""
-    Simple trainer that collects N trajectories of length T and then trains the networks
-"""
-
 
 class ActorCriticTrainer:
     """
-        Initializes the ActorCriticTrainer
-        :param pi: The policy network
-        :param v: The value network
-        :param env_constructor: Function to initialize a new (gym-like) environment.
-            Should have an optional "render" boolean parameter that is True when we want to render in human mode
-        :param state_converter: Function that converts state to a PyTorch tensor (without batch dim)
-        :param action_converter: Function that converts an action from the model to an action in the env.
-            Note that actions by default will be in the range [0.0, 1.0], so scale accordingly!
-        :param n_actions: Number of actions given by the policy
-        :param n_trajectories: Number of "parallel" trajectories used during training. i.e. when you set this to 32,
-            then separate instances of the environment will be used to collect data for every training step
-        :param trajectory_length: The length of every trajectory before performing a training step.
-            After training, the env will continue again for the next batch of samples.
-            If the environment reaches a "done" state, the trainer will reset them and continue until enough data
-            is collected.
-        :param reward_multiplier: Is multiplied with the reward during training (not testing) to scale
-            the rewards into a more reasonable window
-        :param summary_writer: TensorBoard summary writer to use
-        :param cuda: When true, perform training and collection on the GPU
+        Simple trainer class that collects N trajectories of length T and then trains the policy and value networks
     """
 
     def __init__(self, pi: PolicyNet, v: ValueNet, env_constructor, state_converter, action_converter,
                  n_trajectories=8, trajectory_length=100, reward_multiplier=1.0, summary_writer: SummaryWriter = None,
                  cuda=False):
+        """
+            Initializes the ActorCriticTrainer
+            :param pi: The policy network
+            :param v: The value network
+            :param env_constructor: Function to initialize a new (gym-like) environment.
+                Should have an optional "render" boolean parameter that is True when we want to render in human mode
+            :param state_converter: Function that converts state to a PyTorch tensor (without batch dim)
+            :param action_converter: Function that converts an action from the model to an action in the env.
+                Note that actions by default will be in the range [0.0, 1.0], so scale accordingly!
+            :param n_trajectories: Number of "parallel" trajectories used during training. i.e. when you set this to 32,
+                then separate instances of the environment will be used to collect data for every training step
+            :param trajectory_length: The length of every trajectory before performing a training step.
+                After training, the env will continue again for the next batch of samples.
+                If the environment reaches a "done" state, the trainer will reset them and continue until enough data
+                is collected.
+            :param reward_multiplier: Is multiplied with the reward during training (not testing) to scale
+                the rewards into a more reasonable window
+            :param summary_writer: TensorBoard summary writer to use
+            :param cuda: When true, perform training and collection on the GPU
+        """
         self.n_trajectories = n_trajectories
         self.trajectory_length = trajectory_length
         self.state_converter = state_converter

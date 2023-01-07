@@ -5,8 +5,37 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 class ValueNet(torch.nn.Module):
+    """
+        The default Value Network module.
+        This class will provide the following features:
+        - Represent the value network V(s) as a simple feedforward neural networks with 2 hidden layers.
+        - Keep a fixed copy of V(s) that is only updated every N training steps (for stability)
+        - Compute advantages A(s_t) for batches of trajectories using TD(0) estimates
+        - Training V(s) on these TD(0) estimates
+
+        Subclasses of the ValueNet provide different value or advantage estimators that may perform better
+    """
+
     def __init__(self, n_inputs, hidden_layer_size, gamma=0.99, fix_for_n_training_steps=5, lr=0.0003,
                  batch_size=64, summary_writer: SummaryWriter = None):
+        """
+        Initializes the value network
+        :param n_inputs: Size of the state vector
+        :param hidden_layer_size: Size of the hidden layers
+        :param gamma: Discount factor [0, 1].
+            Rewards T steps in the future are discounted by multiplying them with gamma^T.
+            It is recommended to keep this between 0.9 - 0.999 usually.
+        :param fix_for_n_training_steps: Fix the fixed network for N training steps.
+            Lower values may cause instability, higher values may hinder fast convergence.
+            Keep this value low unless the V(s) estimates diverge during training
+        :param lr: Learning rate given to the Adam optimizer
+        :param batch_size: Size of the mini-batches used during training.
+            The trajectory data collected from the environment is shuffled and split up in batches.
+            The final batch of each training step will be smaller than batch_size if the total size of the
+            provided data is not divisible by batch_size (this is not usually an issue).
+        :param summary_writer: TensorBoard Summary writer. Will be used to log useful training statistics under
+            "ValueNet/" when provided. Providing "None" (which is default) will disable TensorBoard logging.
+        """
         super().__init__()
 
         self.gamma = gamma
@@ -33,27 +62,30 @@ class ValueNet(torch.nn.Module):
     def forward(self, states):
         return self.model(states)
 
-    """
-        Given batches of trajectories of states, rewards, and done values, 
-        compute A(s) and target V(s) for all s in the given trajectories apart from the last state in the trajectory.
-        For computing r_t + gamma * V(s_(t+1)), a fixed copy of the value network is used that is updated 
-            after "fix_for_n_training_steps" steps.
-        
-        :param states: Batch of state trajectories. 
-            Example shape for batch_size of 32, a trajectory len of 101, 
-            and a single observation being a vector with 8 elements would be (32, 101, 8).
-            The trajectory length for states and dones is one longer than the rewards because 
-        :param rewards: Batch of reward trajectories. With the above example this would be (32, 100, 1)
-        :param dones: Batch of boolean done values. A "True" value denotes the end state of a trajectory.
-            The state thereafter is assumed to be the start of a new one.
-            Any V(s) when s is done will be set to 0, since no more reward can be gained. Example shape: (32, 101, 1)
-            
-        :return: Returns a tuple: A(s_t) and r_t + gamma * V(s_(t+1)) for all states given except the last state of every trajectory.
-            A(s_t) denotes the advantage gained by performing a_t. 
-            This is the difference between the gained values r_t + gamma * V(s_(t+1)) and the expected values V(s_t). 
-    """
-
     def compute_advantage_and_target_returns(self, states, rewards, dones):
+        """
+            Given batches of trajectories of states, rewards, and done values,
+                compute A(s) and target V(s) for all s in the given trajectories apart from the last state in
+                the trajectory.
+
+            For computing r_t + gamma * V(s_(t+1)), a fixed copy of the value network is used that is updated
+                after "fix_for_n_training_steps" steps.
+
+            :param states: Batch of state trajectories.
+                Example shape for batch_size of 32, a trajectory len of 101,
+                and a single observation being a vector with 8 elements would be (32, 101, 8).
+                The trajectory length for states and dones is one longer than the rewards because
+            :param rewards: Batch of reward trajectories. With the above example this would be (32, 100, 1)
+            :param dones: Batch of boolean done values. A "True" value denotes the end state of a trajectory.
+                The state thereafter is assumed to be the start of a new one.
+                For any s_t that is a terminal state, V(s_t) = 0, since no more reward can be gained.
+                Example shape: (32, 101, 1)
+
+            :return: Returns a tuple: A(s_t) and r_t + gamma * V(s_(t+1)) for all states given except the last state
+                of every trajectory.
+                A(s_t) denotes the advantage gained by performing a_t, which is the difference between the gained
+                values r_t + gamma * V(s_(t+1)) and the expected values V(s_t).
+        """
         if not (states.size(1) == dones.size(1) and rewards.size(1) == states.size(1) - 1):
             raise ValueError(
                 "Cannot compute advantage and target returns: "
@@ -85,13 +117,12 @@ class ValueNet(torch.nn.Module):
 
         return advantage, gained_values
 
-    """
-        Trains the value model on the "gained_values" target values for the given states.
-        "gained_values" can be retrieved from the compute_advantage_and_target_returns method.
-        Training is done in batches of batch_size. The final batch may be smaller than batch_size 
-    """
-
     def training_step(self, states, gained_values):
+        """
+            Trains the value model on the "gained_values" target values for the given states.
+            "gained_values" can be retrieved from the compute_advantage_and_target_returns method.
+            Training is done in batches of batch_size. The final batch may be smaller than batch_size
+        """
         n_trajectories = states.size(0)
         trajectory_len = states.size(1) - 1
         n_samples = n_trajectories * trajectory_len

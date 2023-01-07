@@ -5,9 +5,48 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 class PolicyNet(torch.nn.Module):
+    """
+    PolicyNet, implements a simple Actor from A2C that models the policy pi(s).
+
+    By default, pi(s) is modeled using the Beta distribution.
+    The Beta distribution was chosen over a Normal distribution because the Beta distribution
+    is constrained between [0, 1] by default, which more accurately models the clipped continuous action space
+    that most environments require.
+
+    This class provides the following functionality:
+    - Initialize a simple feedforward neural network with TanH activations and 2 hidden layers
+    - Train the policy network by minimizing -log(pi(s)) * A(s) for all given states s
+    - Keep a fixed version of the model (only relevant for PPO)
+    - Easy methods for getting an action for a given state
+
+    NOTE: This algorithm tends to "crash" hard and can be very unstable.
+        PPO fixes these issues, so it's recommended to use the PpoPolicyNet instead.
+    """
     def __init__(self, n_inputs, hidden_layer_size,
                  fix_for_n_training_steps=100, lr=0.0003, batch_size=64, n_outputs=1, clip_beta=True,
                  entropy_factor=0.0, summary_writer: SummaryWriter = None):
+        """
+        Initializes the PolicyNetwork
+        :param n_inputs: Size of the input vector
+        :param hidden_layer_size: number of neurons in every hidden layer
+        :param fix_for_n_training_steps: Number of training steps to fix the fixed pi(s) network for
+            (only relevant for PPO, will probably be moved there in later versions)
+        :param lr: Learning rate given to the Adam optimizer
+        :param batch_size: Batch size used during training.
+            Data collected from the environment is shuffled and then split into batches of batch_size.
+            The final batch of every training step may be smaller.
+        :param n_outputs: Number of continuous actions to output
+        :param clip_beta: Constrain the α and β values of the Beta distribution to be >= 1.
+            This is recommended, since values lower than 1 will allow the network to create some weird U-shaped
+            distributions and may lead to instability.
+        :param entropy_factor:  Factor of the entropy regularization (should be >= 0).
+            Higher values encourage a higher entropy distribution of pi(s), and thus more random actions.
+            Too high values may lead to failure to converge or even mathematical error leading to nan values.
+            Recommended value is 0, unless the agent converges into local optima and more exploration is required.
+        :param summary_writer: For Tensorboard integration.
+            If one is provided, useful values are logged to tensorboard under "PolicyNet/".
+            Default value is None, which disables TensorBoard logging.
+        """
         super().__init__()
 
         self.fix_for_n_training_steps = fix_for_n_training_steps
