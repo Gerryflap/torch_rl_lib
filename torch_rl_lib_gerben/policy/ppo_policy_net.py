@@ -38,5 +38,5 @@ class PpoPolicyNet(PolicyNet):
             torch.clamp(ratio, 1 - self.clip_eps, 1 + self.clip_eps) * advantages
         ) / self.batch_size
         if self.entropy_factor != 0.0:
-            loss -= self.entropy_factor * dist.entropy()
+            loss -= self.entropy_factor * dist.entropy() / self.batch_size
         return loss

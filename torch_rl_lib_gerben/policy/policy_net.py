@@ -159,5 +159,5 @@ class PolicyNet(torch.nn.Module):
         dist = self(states)
         loss = -(dist.log_prob(actions) * advantages) / self.batch_size
         if self.entropy_factor != 0.0:
-            loss -= self.entropy_factor * dist.entropy()
+            loss -= self.entropy_factor * dist.entropy() / self.batch_size
         return loss
