@@ -27,7 +27,7 @@ def test_ppo_gae_simple_env():
         return env_a
 
     summary_writer = None
-    # summary_writer = SummaryWriter(comment="simple_env")
+    summary_writer = SummaryWriter(comment="ac_simple_env")
 
     custom_policy_model = torch.nn.Sequential(
         torch.nn.Linear(2, 64),

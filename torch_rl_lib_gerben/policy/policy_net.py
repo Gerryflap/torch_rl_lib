@@ -150,6 +150,14 @@ class PolicyNet(torch.nn.Module):
             loss.backward()
             if not torch.isnan(torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)).any():
                 self.optim.step()
+            else:
+                print("WARNING: NaN value detected in gradients")
+                print("Gradients: ", torch.isnan(torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)))
+                print("States:", batch_states)
+                print("Actions:", batch_actions)
+                print("Advantages:", batch_adv)
+                print("Dones: ", dones.view(-1)[batch_indices])
+                print("Loss:, ", loss_batch)
 
         self.current_train_step += 1
         if self.current_train_step % self.fix_for_n_training_steps == 0:
@@ -161,3 +169,7 @@ class PolicyNet(torch.nn.Module):
         if self.entropy_factor != 0.0:
             loss -= self.entropy_factor * dist.entropy() / self.batch_size
         return loss
+
+    def is_cuda(self):
+        return next(self.parameters()).is_cuda
+
