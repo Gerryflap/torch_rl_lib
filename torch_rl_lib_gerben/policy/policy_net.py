@@ -50,6 +50,7 @@ class PolicyNet(torch.nn.Module):
             Default value is None, which disables TensorBoard logging.
         :param custom_model: Custom torch module that takes both input of size (N, ...) and (N, T, ...)
             where the "..." denotes the shape of the state.
+            (NOTE: use ModelSequenceCompatibilityWrapper when (N, T, ...) is not supported by your architecture)
             It should output tensors of size (N, hidden_layer_size) or (N, T, hidden_layer_size) depending on the input.
             This can be used when the default network architecture is not sufficient (i.e. image inputs).
         :param n_inputs: Size of the input state vector. Only needed when you don't provide a custom model.
