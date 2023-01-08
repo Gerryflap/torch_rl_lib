@@ -12,14 +12,13 @@ class McValueNet(ValueNet):
         This introduces a lot of variance between runs, but suffers way less from the inherent bias caused by using
             the estimator V.
     """
-    def __init__(self, n_inputs, hidden_layer_size, **kwargs):
+    def __init__(self, hidden_layer_size, **kwargs):
         """
         Initializes the MC value network
-        :param n_inputs: Size of the state vector
         :param hidden_layer_size: Size of the hidden layers
         :param kwargs: The other keyword arguments that can be provided to the default ValueNet
         """
-        super().__init__(n_inputs, hidden_layer_size, **kwargs)
+        super().__init__(hidden_layer_size, **kwargs)
 
     def compute_advantage_and_target_returns(self, states, rewards, dones):
         if not (states.size(1) == dones.size(1) and rewards.size(1) == states.size(1) - 1):

@@ -16,12 +16,13 @@ class ValueNet(torch.nn.Module):
         Subclasses of the ValueNet provide different value or advantage estimators that may perform better
     """
 
-    def __init__(self, n_inputs, hidden_layer_size, gamma=0.99, fix_for_n_training_steps=5, lr=0.0003,
-                 batch_size=64, summary_writer: SummaryWriter = None):
+    def __init__(self, hidden_layer_size, gamma=0.99, fix_for_n_training_steps=5, lr=0.0003,
+                 batch_size=64, summary_writer: SummaryWriter = None, custom_model: torch.nn.Module = None,
+                 n_inputs=None):
         """
         Initializes the value network
-        :param n_inputs: Size of the state vector
-        :param hidden_layer_size: Size of the hidden layers
+        :param hidden_layer_size: Size of the hidden layer(s). When providing a custom model,
+            your output should be this size in order to allow the final layer to connect to it.
         :param gamma: Discount factor [0, 1].
             Rewards T steps in the future are discounted by multiplying them with gamma^T.
             It is recommended to keep this between 0.9 - 0.999 usually.
@@ -35,6 +36,11 @@ class ValueNet(torch.nn.Module):
             provided data is not divisible by batch_size (this is not usually an issue).
         :param summary_writer: TensorBoard Summary writer. Will be used to log useful training statistics under
             "ValueNet/" when provided. Providing "None" (which is default) will disable TensorBoard logging.
+        :param custom_model: Custom torch module that takes both input of size (N, ...) and (N, T, ...)
+            where the "..." denotes the shape of the state.
+            It should output tensors of size (N, hidden_layer_size) or (N, T, hidden_layer_size) depending on the input.
+            This can be used when the default network architecture is not sufficient (i.e. image inputs)
+        :param n_inputs: Size of the input state vector. Only needed when you don't provide a custom model.
         """
         super().__init__()
 
@@ -45,13 +51,20 @@ class ValueNet(torch.nn.Module):
 
         self.current_train_step = 0
 
+        if custom_model is None:
+            if n_inputs is None:
+                raise ValueError("Cannot initialize ValueNet: Either custom_model or n_inputs needs to be defined!")
+
+            custom_model = torch.nn.Sequential(
+                torch.nn.Linear(n_inputs, hidden_layer_size),
+                torch.nn.Tanh(),
+
+                torch.nn.Linear(hidden_layer_size, hidden_layer_size),
+                torch.nn.Tanh(),
+            )
+
         self.model = torch.nn.Sequential(
-            torch.nn.Linear(n_inputs, hidden_layer_size),
-            torch.nn.Tanh(),
-
-            torch.nn.Linear(hidden_layer_size, hidden_layer_size),
-            torch.nn.Tanh(),
-
+            custom_model,
             torch.nn.Linear(hidden_layer_size, 1),
         )
 

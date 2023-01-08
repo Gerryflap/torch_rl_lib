@@ -29,8 +29,16 @@ def test_ppo_gae_simple_env():
     summary_writer = None
     # summary_writer = SummaryWriter(comment="simple_env")
 
-    value_net = GaeValueNet(2, 64, summary_writer=summary_writer)
-    policy_net = PpoPolicyNet(2, 64, summary_writer=summary_writer)
+    custom_policy_model = torch.nn.Sequential(
+        torch.nn.Linear(2, 64),
+        torch.nn.Tanh(),
+
+        torch.nn.Linear(64, 64),
+        torch.nn.Tanh(),
+    )
+
+    value_net = GaeValueNet(64, summary_writer=summary_writer, n_inputs=2)
+    policy_net = PpoPolicyNet(64, summary_writer=summary_writer, custom_model=custom_policy_model)
 
     trainer = ActorCriticTrainer(policy_net, value_net, env_init, convert_state, convert_action,
                                  reward_multiplier=0.1, summary_writer=summary_writer, trajectory_length=30,

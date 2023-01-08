@@ -22,13 +22,15 @@ class PolicyNet(torch.nn.Module):
     NOTE: This algorithm tends to "crash" hard and can be very unstable.
         PPO fixes these issues, so it's recommended to use the PpoPolicyNet instead.
     """
-    def __init__(self, n_inputs, hidden_layer_size,
+
+    def __init__(self, hidden_layer_size,
                  fix_for_n_training_steps=100, lr=0.0003, batch_size=64, n_outputs=1, clip_beta=True,
-                 entropy_factor=0.0, summary_writer: SummaryWriter = None):
+                 entropy_factor=0.0, summary_writer: SummaryWriter = None, custom_model: torch.nn.Module = None,
+                 n_inputs=None):
         """
         Initializes the PolicyNetwork
-        :param n_inputs: Size of the input vector
-        :param hidden_layer_size: number of neurons in every hidden layer
+        :param hidden_layer_size: Size of the hidden layer(s). When providing a custom model,
+            your output should be this size in order to allow the final layer to connect to it.
         :param fix_for_n_training_steps: Number of training steps to fix the fixed pi(s) network for
             (only relevant for PPO, will probably be moved there in later versions)
         :param lr: Learning rate given to the Adam optimizer
@@ -46,6 +48,11 @@ class PolicyNet(torch.nn.Module):
         :param summary_writer: For Tensorboard integration.
             If one is provided, useful values are logged to tensorboard under "PolicyNet/".
             Default value is None, which disables TensorBoard logging.
+        :param custom_model: Custom torch module that takes both input of size (N, ...) and (N, T, ...)
+            where the "..." denotes the shape of the state.
+            It should output tensors of size (N, hidden_layer_size) or (N, T, hidden_layer_size) depending on the input.
+            This can be used when the default network architecture is not sufficient (i.e. image inputs).
+        :param n_inputs: Size of the input state vector. Only needed when you don't provide a custom model.
         """
         super().__init__()
 
@@ -60,13 +67,20 @@ class PolicyNet(torch.nn.Module):
 
         self.current_train_step = 0
 
+        if custom_model is None:
+            if n_inputs is None:
+                raise ValueError("Cannot initialize ValueNet: Either custom_model or n_inputs needs to be defined!")
+
+            custom_model = torch.nn.Sequential(
+                torch.nn.Linear(n_inputs, hidden_layer_size),
+                torch.nn.Tanh(),
+
+                torch.nn.Linear(hidden_layer_size, hidden_layer_size),
+                torch.nn.Tanh(),
+            )
+
         self.model = torch.nn.Sequential(
-            torch.nn.Linear(n_inputs, hidden_layer_size),
-            torch.nn.Tanh(),
-
-            torch.nn.Linear(hidden_layer_size, hidden_layer_size),
-            torch.nn.Tanh(),
-
+            custom_model,
             torch.nn.Linear(hidden_layer_size, n_outputs * 2),
         )
 

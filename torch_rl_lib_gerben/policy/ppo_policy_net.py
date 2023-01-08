@@ -14,10 +14,9 @@ class PpoPolicyNet(PolicyNet):
             This ensures that the policy network does not change too fast, and massively improves stability.
     """
 
-    def __init__(self, n_inputs, hidden_layer_size, clip_eps=0.2, **kwargs):
+    def __init__(self, hidden_layer_size, clip_eps=0.2, **kwargs):
         """
         Initializes the PpoPolicyNetwork
-        :param n_inputs: Size of the input vector
         :param hidden_layer_size: number of neurons in every hidden layer
         :param clip_eps: ε used in PPO to clip policy deviation from the fixed policy network.
             Higher values may lead to faster training and
@@ -25,7 +24,7 @@ class PpoPolicyNet(PolicyNet):
             It is recommended to keep this around 0.2 unless you have issues.
         :param kwargs: The other default PolicyNet arguments
         """
-        super().__init__(n_inputs, hidden_layer_size, **kwargs)
+        super().__init__(hidden_layer_size, **kwargs)
         self.clip_eps = clip_eps
 
     def compute_loss(self, states, actions, advantages):

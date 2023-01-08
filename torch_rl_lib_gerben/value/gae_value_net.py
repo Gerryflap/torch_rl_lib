@@ -10,10 +10,9 @@ class GaeValueNet(ValueNet):
     Schulman, John, et al. "High-dimensional continuous control using generalized advantage estimation."
         arXiv preprint arXiv:1506.02438 (2015).
     """
-    def __init__(self, n_inputs, hidden_layer_size, lambd=0.95, **kwargs):
+    def __init__(self, hidden_layer_size, lambd=0.95, **kwargs):
         """
         Initializes the GAE value network
-        :param n_inputs: Size of the state vector
         :param hidden_layer_size: Size of the hidden layers
         :param lambd: The GAE lambda parameter, should be in range [0, 1].
             Trade-off between bias (lower) and variance (higher).
@@ -21,7 +20,7 @@ class GaeValueNet(ValueNet):
             lambda=1 will result in (r_t + gamma * r_(t+1) + gamma^2 * r_(t+2) + ... ) - V(s)
         :param kwargs: The other keyword arguments that can be provided to the default ValueNet
         """
-        super().__init__(n_inputs, hidden_layer_size, **kwargs)
+        super().__init__(hidden_layer_size, **kwargs)
         self.lambd = lambd
 
     def compute_advantage_and_target_returns(self, states, rewards, dones):
