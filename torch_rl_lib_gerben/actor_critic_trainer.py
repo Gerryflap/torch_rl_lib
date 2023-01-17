@@ -7,6 +7,8 @@ from torch_rl_lib_gerben.policy.policy_net import PolicyNet
 from torch_rl_lib_gerben.util.timer import Timer
 from torch_rl_lib_gerben.value.value_net import ValueNet
 
+from multiprocessing.dummy import Pool as ThreadPool
+
 
 class ActorCriticTrainer:
     """
@@ -84,8 +86,8 @@ class ActorCriticTrainer:
         self.dones[:, 0] = torch.BoolTensor([d for _, d in self.prev_last_state_and_done]).view(self.n_trajectories, 1)
 
     def collect(self):
-        for trajectory_index in range(self.n_trajectories):
-            self.collect_single_trajectory(trajectory_index)
+        with ThreadPool(self.n_trajectories) as pool:
+            pool.map(self.collect_single_trajectory, range(self.n_trajectories))
 
     def collect_single_trajectory(self, trajectory_index):
         s = self.state_converter(self.prev_last_state_and_done[trajectory_index][0])
