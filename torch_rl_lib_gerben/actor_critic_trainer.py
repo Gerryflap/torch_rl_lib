@@ -159,11 +159,12 @@ class ActorCriticTrainer:
         self.current_train_step += 1
 
     # Test the agent on a full trajectory and return the sum of rewards (and optionally render at an optional fps)
-    def test_on_env(self, render=False, cap_fps=None):
+    def test_on_env(self, render=False, cap_fps=None, max_steps=None):
         done = False
         env = self.env_constructor(render=render)
         s, _ = env.reset()
         score = 0
+        step = 0
 
         while not done:
             a = self.pi.get_action(self.state_converter(s))
@@ -175,5 +176,9 @@ class ActorCriticTrainer:
             if render:
                 if cap_fps is not None:
                     time.sleep(1.0 / cap_fps)
+
+            step += 1
+            if max_steps is not None and step == max_steps:
+                break
         env.close()
         return score
