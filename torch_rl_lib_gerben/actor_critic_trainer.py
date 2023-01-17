@@ -85,39 +85,42 @@ class ActorCriticTrainer:
 
     def collect(self):
         for trajectory_index in range(self.n_trajectories):
-            s = self.state_converter(self.prev_last_state_and_done[trajectory_index][0])
-            done = self.prev_last_state_and_done[trajectory_index][1]
-            s_new_orig = None
+            self.collect_single_trajectory(trajectory_index)
 
-            for step in range(self.trajectory_length):
-                if not done:
-                    self.actions[trajectory_index, step] = self.pi.get_action(s)
-                    s_new_orig, r, term, trunc, _ = self.envs[trajectory_index].step(self.action_converter(
-                        self.actions[trajectory_index, step]))
+    def collect_single_trajectory(self, trajectory_index):
+        s = self.state_converter(self.prev_last_state_and_done[trajectory_index][0])
+        done = self.prev_last_state_and_done[trajectory_index][1]
+        s_new_orig = None
 
-                    s_new = self.state_converter(s_new_orig)
-                    done = term or trunc
-                    self.rewards[trajectory_index, step] = r
-                    self.dones[trajectory_index, step + 1] = done
-                    self.states[trajectory_index, step + 1] = s_new
+        for step in range(self.trajectory_length):
+            if not done:
+                self.actions[trajectory_index, step] = self.pi.get_action(s)
+                s_new_orig, r, term, trunc, _ = self.envs[trajectory_index].step(self.action_converter(
+                    self.actions[trajectory_index, step]))
 
-                    self.scores[trajectory_index] += r
-                else:
-                    s_new_orig, _ = self.envs[trajectory_index].reset()
-                    s_new = self.state_converter(s_new_orig)
-                    done = False
-                    self.states[trajectory_index, step + 1] = s_new
+                s_new = self.state_converter(s_new_orig)
+                done = term or trunc
+                self.rewards[trajectory_index, step] = r
+                self.dones[trajectory_index, step + 1] = done
+                self.states[trajectory_index, step + 1] = s_new
 
-                    if self.summary_writer is not None:
-                        self.summary_writer.add_scalar("Trainer/train_scores",
-                                                       self.scores[trajectory_index],
-                                                       self.current_train_step
-                                                       )
-                    self.scores[trajectory_index] = 0.0
+                self.scores[trajectory_index] += r
+            else:
+                s_new_orig, _ = self.envs[trajectory_index].reset()
+                s_new = self.state_converter(s_new_orig)
+                done = False
+                self.states[trajectory_index, step + 1] = s_new
 
-                s = s_new
+                if self.summary_writer is not None:
+                    self.summary_writer.add_scalar("Trainer/train_scores",
+                                                   self.scores[trajectory_index],
+                                                   self.current_train_step
+                                                   )
+                self.scores[trajectory_index] = 0.0
 
-            self.prev_last_state_and_done[trajectory_index] = (s_new_orig, done)
+            s = s_new
+
+        self.prev_last_state_and_done[trajectory_index] = (s_new_orig, done)
 
     def collect_and_train(self):
         if self.summary_writer:
